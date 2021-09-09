@@ -86,7 +86,7 @@ mainflux-cli version
 ### Users management
 #### Create User
 ```bash
-mainflux-cli users create <user_email> <user_password>
+mainflux-cli users create <user_email> <user_password> <user_auth_token>
 ```
 
 #### Login User
