@@ -73,7 +73,7 @@ After identifying the requester as `user2`, the Policy service checks that `user
 Now, `user1` wants to share the `"user1-thing"` with `user2`. `user1` can achieve this via HTTP endpoint for sharing things as follows:
 
 ```bash
-curl -isSX POST http://localhost/things/a1109d52-6281-410e-93ae-38ba7daa9381/share -d '{"user_ids":["user_id_2"], "policies": ["read", "delete"]}' -H "Authorization: <user1_auth_token>" -H 'Content-Type: application/json'
+curl -isSX POST http://localhost/things/a1109d52-6281-410e-93ae-38ba7daa9381/share -d '{"user_id":"user_id_2", "policies": ["read", "delete"]}' -H "Authorization: <user1_auth_token>" -H 'Content-Type: application/json'
 
 HTTP/1.1 200 OK
 Server: nginx/1.20.0
