@@ -2,9 +2,9 @@
 
 ## Policies
 
-Mainflux uses policies to control permissions on entities: **users**, **things**, and **groups**. Under the hood, Mainflux uses [ORY Keto](https://www.ory.sh/keto/) that is the first and only open-source implementation of ["Zanzibar: Google's Consistent, Global Authorization System"](https://www.usenix.org/conference/atc19/presentation/pang)
+Mainflux uses policies to control permissions on entities: **users**, **things**, and **groups**. Under the hood, Mainflux uses [ORY Keto](https://www.ory.sh/keto/) that is an open-source implementation of ["Zanzibar: Google's Consistent, Global Authorization System"](https://www.usenix.org/conference/atc19/presentation/pang)
 
-Policies define permissions for the entities. For example, *which user* has *access* to *a specific thing*? Such policies have three main components: **subject**, **object**, and **relation**.
+Policies define permissions for the entities. For example, *which user* has *access* to *a specific thing*. Such policies have three main components: **subject**, **object**, and **relation**.
 
 To put it briefly: 
 
@@ -35,6 +35,7 @@ Mainflux comes with predefined policies.
 ### Users service related policies
 
 - By default, Mainflux allows anybody to create a user. If you disable this default policy, only *admin* is able to create a user.
+This default policy can be disabled through an environment variable in deployment time.
 
 
 ### Things service related policies
@@ -68,12 +69,12 @@ mainflux-cli things get a1109d52-6281-410e-93ae-38ba7daa9381 <user2_auth_token>
 error: failed to fetch entity : 403 Forbidden
 ```
 
-After identifying the requester as `user2`, the Policy service checks that `user2 is allowed to view the "user1-thing"`? Since `user2` has no such policy, the Policy service denies this request.
+After identifying the requester as `user2`, the Policy service checks that `Is user2 allowed to view the "user1-thing"?` Since `user2` has no such policy (`read` policy on `"user1-thing"`), the Policy service denies this request.
 
 Now, `user1` wants to share the `"user1-thing"` with `user2`. `user1` can achieve this via HTTP endpoint for sharing things as follows:
 
 ```bash
-curl -isSX POST http://localhost/things/a1109d52-6281-410e-93ae-38ba7daa9381/share -d '{"user_id":"<user_id>", "policies": ["read", "delete"]}' -H "Authorization: <user1_auth_token>" -H 'Content-Type: application/json'
+curl -isSX POST http://localhost/things/a1109d52-6281-410e-93ae-38ba7daa9381/share -d '{"user_ids":["<user2_id>]", "policies": ["read", "delete"]}' -H "Authorization: <user1_auth_token>" -H 'Content-Type: application/json'
 
 HTTP/1.1 200 OK
 Server: nginx/1.20.0
@@ -101,4 +102,4 @@ mainflux-cli things get a1109d52-6281-410e-93ae-38ba7daa9381 <user2_auth_token>
 }
 ```
 
-As we expected, the operation is successfully done. The policy server checked that `is user2 allowed to view "user1-thing"`? Since `user2` has a `read` policy on `"user1-thing"`, the Policy server allows this request. 
+As we expected, the operation is successfully done. The policy server checked that `Is user2 allowed to view "user1-thing"?` Since `user2` has a `read` policy on `"user1-thing"`, the Policy server allows this request. 
