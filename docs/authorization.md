@@ -47,7 +47,7 @@ This default policy can be disabled through an environment variable in deploymen
 - In order to remove a thing, you need a `delete` policy on that thing.
 
 
-## Example Usage
+## Example usage of sharing a Thing
 
 Let's assume, we have two users (called `user1` and `user2`) registered on the system who have `user_id_1` and `user_id_2` as their ID respectively.
 Let's create a thing with the following command:
@@ -103,3 +103,253 @@ mainflux-cli things get a1109d52-6281-410e-93ae-38ba7daa9381 <user2_auth_token>
 ```
 
 As we expected, the operation is successfully done. The policy server checked that `Is user2 allowed to view "user1-thing"?` Since `user2` has a `read` policy on `"user1-thing"`, the Policy server allows this request. 
+
+## Example usage of sharing entities via Group
+
+Mainflux allows you to group entities (e.g., `Users` and `Things`) through `Group` object in `auth` service. You can find more details about usage of the `Group` at [Groups documentation.](groups.md)
+
+In this example, we will demonstrate how you can share access of the Users group to the Things group. So, each member of the Users group will have access to each Thing assigned to the Things group. We are going to start from a clean Mainflux setup and follow these steps:
+
+1. Create a new user and multiple Things,
+2. Create a Thing and User group, and assign members to groups,
+3. Share access of the groups
+
+First of all, obtain a token for the default admin. You can use any user but for the simplicity of the document, the default admin will be used. 
+
+> By default, Mainflux uses credentials described in [.env](https://github.com/mainflux/mainflux/blob/master/docker/.env#L46) for the default admin.
+
+
+```bash
+$ curl -s -S -i -X POST -H "Content-Type: application/json" http://localhost/tokens -d '{"email":"admin@example.com",
+"password":"12345678"}'
+HTTP/1.1 201 Created
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 08:26:45 GMT
+Content-Type: application/json
+Content-Length: 285
+Connection: keep-alive
+Strict-Transport-Security: max-age=63072000; includeSubdomains
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: *
+Access-Control-Allow-Headers: *
+
+{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzQxNDk2MDUsImlhdCI6MTYzNDExMzYwNSwiaXNzIjoibWFpbmZsdXguYXV0aCIsInN1YiI6ImFkbWluQGV4YW1wbGUuY29tIiwiaXNzdWVyX2lkIjoiOTA3MjkzMDMtZDMwZC00YmQ5LTkwMTYtNDljMThjZmY4YjUxIiwidHlwZSI6MH0.G1kjXiGX76BqpytmLdXtjLF9s9K5CVm4ScNMIaKlkwE"}
+```
+
+You can store the generated token because we will need it in further steps.
+
+```bash
+$ export token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzQxNDk2MDUsImlhdCI6MTYzNDExMzYwNSwiaXNzIjoibWFpbmZsdXguYXV0aCIsInN1YiI6ImFkbWluQGV4YW1wbGUuY29tIiwiaXNzdWVyX2lkIjoiOTA3MjkzMDMtZDMwZC00YmQ5LTkwMTYtNDljMThjZmY4YjUxIiwidHlwZSI6MH0.G1kjXiGX76BqpytmLdXtjLF9s9K5CVm4ScNMIaKlkwE
+```
+
+Now, we can create a new user as follows:
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" http://localhost/users -d '{"email":"user@example.com", "password":"12345678"}'
+
+HTTP/1.1 201 Created
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 08:45:57 GMT
+Content-Type: application/json
+Content-Length: 0
+Connection: keep-alive
+Location: /users/f31f8a0a-11b1-4aa6-a4a3-9629378c0326
+Strict-Transport-Security: max-age=63072000; includeSubdomains
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: *
+Access-Control-Allow-Headers: *
+```
+You can obtain the user ID via `Location`. The ID of the `user@example.com` is `f31f8a0a-11b1-4aa6-a4a3-9629378c0326`. 
+
+After creating the new user, we have two users on the system as `admin@example.com` and `user@example.com`.
+Then, the admin creates multiple Things called `admin-thing-1` and `admin-thing-2`.
+
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" -H "Authorization: $token" http://localhost/things/bulk -d '[{"name": "a
+dmin-thing-1"}, {"name": "admin-thing-2"}]'
+
+HTTP/1.1 201 Created
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 08:53:38 GMT
+Content-Type: application/json
+Content-Length: 241
+Connection: keep-alive
+Access-Control-Expose-Headers: Location
+
+{"things":[{"id":"c3d75452-ae00-4aea-84f9-29ab79fd0d26","name":"admin-thing-1","key":"4fb36389-f7a5-424d-8c4f-da5c9e91f3c5"},{"id":"ee589c61-0b98-4176-9da0-d91913087be6","name":"admin-thing-2","key":"410f5889-c756-470d-bd65-2e99b4ecc679"}]}
+```
+```bash
+export th1=c3d75452-ae00-4aea-84f9-29ab79fd0d26
+export th2=ee589c61-0b98-4176-9da0-d91913087be6
+```
+
+Mainflux identifies `admin@example.com` via the token provided through the `Authorization` request header. On top of that, Mainflux claims ownership of things (`admin-thing-1` and `admin-thing-2`) on the `admin@example.com`. So that, the creator of Things (in this case `admin@example.com`) is going to have `read`, `write` and `delete` policies on the Thing.
+
+If `user@example.com` logs in the system, `user@example.com` cannot access the things created by the `admin@example.com` due to lack of policies.
+
+The next step is creating the user and things Groups respectively. You can create groups as follows:
+
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" -H "Authorization: $token" http://localhost/groups -d '{"name": "user_group"}'
+HTTP/1.1 201 Created
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 09:24:39 GMT
+Content-Type: application/json
+Content-Length: 0
+Connection: keep-alive
+Location: /groups/01FHWFFMME9N2N26DG0DMNRWRW
+Access-Control-Expose-Headers: Location
+```
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" -H "Authorization: $token" http://localhost/groups -d '{"name": "thing_group"}'
+HTTP/1.1 201 Created
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 09:24:58 GMT
+Content-Type: application/json
+Content-Length: 0
+Connection: keep-alive
+Location: /groups/01FHWFG78DSYA458D8ST4YQ9Y9
+Access-Control-Expose-Headers: Location
+```
+
+Again, you can obtain group IDs via `Location` in response. It is convenient to store them in variables.
+```bash
+export ug=01FHWFFMME9N2N26DG0DMNRWRW
+export tg=01FHWFG78DSYA458D8ST4YQ9Y9
+```
+
+After creating groups, we are ready to assign new members to groups. Let's start with the user group.
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" -H "Authorization: $token" http://localhost/groups/$ug/members -d '{"members":["f31f8a0a-11b1-4aa6-a4a3-9629378c0326"], "type":"users"}'
+
+HTTP/1.1 200 OK
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 09:37:05 GMT
+Content-Type: application/json
+Content-Length: 0
+Connection: keep-alive
+Access-Control-Expose-Headers: Location
+```
+If you remember, `f31f8a0a-11b1-4aa6-a4a3-9629378c0326` is the ID of the `user@example.com`. Since the `$ug` represents the ID of the user group called `user_group`, we indicated the type of the group as `"users"` in the request body.
+
+Now, we can assign Things to the thing group.
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" -H "Authorization: $token" http://localhost/groups/$tg/members -d '{"members":["c3d75452-ae00-4aea-84f9-29ab79fd0d26", "ee589c61-0b98-4176-9da0-d91913087be6"], "type":"things"}'
+
+HTTP/1.1 200 OK
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 09:42:12 GMT
+Content-Type: application/json
+Content-Length: 0
+Connection: keep-alive
+Access-Control-Expose-Headers: Location
+```
+The same logic applies here as well. The IDs of the things that `admin@example.com` created are `c3d75452-ae00-4aea-84f9-29ab79fd0d26` and `ee589c61-0b98-4176-9da0-d91913087be6`. Since the `$tg` represents the ID of the thing group called `thing_group`, we indicated the type of the group as `"things"` in the request body.
+
+Before moving to the third step, let's analyze the current situation. We have two groups, two users, and two things. The first group is the user group and consists of two users, `admin@example.com` (since the admin created the group) and `user@example.com`. The second group is the thing group. It includes two things created by `admin@example.com`.  `user@example.com` still has no access to things created by `admin@example.com`. You can verify it as:
+```bash
+curl -s -S -i -X GET -H "Authorization: $usertoken" http://localhost/things/$th1
+HTTP/1.1 403 Forbidden
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 09:51:45 GMT
+Content-Type: application/json
+Content-Length: 60
+Connection: keep-alive
+
+{"error":"failed to perform authorization over the entity"}
+```
+```bash
+curl -s -S -i -X GET -H "Authorization: $usertoken" http://localhost/things/$th2
+HTTP/1.1 403 Forbidden
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 09:51:49 GMT
+Content-Type: application/json
+Content-Length: 60
+Connection: keep-alive
+
+{"error":"failed to perform authorization over the entity"}
+```
+
+The `$usertoken` is the token for `user@example.com`. As you can see, requests to access things are denied.
+
+Now, let's assign group access rights.
+```bash
+curl -s -S -i -X POST http://localhost/groups/$ug/share -d '{"thing_group_id": "01FHWFG78DSYA458D8ST4YQ9Y9"}' -H 'Content-Type: application/json' -H "Authorization: $token"
+HTTP/1.1 200 OK
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 09:59:13 GMT
+Content-Type: application/json
+Content-Length: 3
+Connection: keep-alive
+Access-Control-Expose-Headers: Location 
+```
+
+Now, all the members of the `user_group` have access to things grouped by `thing_group`. Therefore, `user@example.com` has `read`, `write` and `delete` policies on the things within the thing_group. 
+
+Try to access things as `user@example.com`.
+
+```bash
+curl -s -S -i -X GET -H "Authorization: $usertoken" http://localhost/things/$th1
+HTTP/1.1 200 OK
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 10:02:19 GMT
+Content-Type: application/json
+Content-Length: 114
+Connection: keep-alive
+Access-Control-Expose-Headers: Location
+
+{"id":"c3d75452-ae00-4aea-84f9-29ab79fd0d26","name":"admin-thing-1","key":"4fb36389-f7a5-424d-8c4f-da5c9e91f3c5"}
+```
+```bash
+curl -s -S -i -X GET -H "Authorization: $usertoken" http://localhost/things/$th2
+HTTP/1.1 200 OK
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 10:02:21 GMT
+Content-Type: application/json
+Content-Length: 114
+Connection: keep-alive
+Access-Control-Expose-Headers: Location
+
+{"id":"ee589c61-0b98-4176-9da0-d91913087be6","name":"admin-thing-2","key":"410f5889-c756-470d-bd65-2e99b4ecc679"}
+```
+Successful!
+
+Let's assume, `admin@example.com` does not want to share things with `user@example.com` anymore. In order to achieve that, `admin@example.com` unassigns `user@example.com` from the `user_group`.
+```bash
+curl -s -S -i -X DELETE -H "Content-Type: application/json" -H "Authorization: $token" http://localhost/groups/$ug/members -d '{"members":["f31f8a0a-11b1-4aa6-a4a3-9629378c0326"], "type":"users"}'
+
+HTTP/1.1 204 No Content
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 10:08:56 GMT
+Content-Type: application/json
+Connection: keep-alive
+Access-Control-Expose-Headers: Location
+```
+
+Now, when `user@example.com` tries to access the things, the request will be denied.
+
+```bash
+curl -s -S -i -X GET -H "Authorization: $usertoken" http://localhost/things/$th1
+HTTP/1.1 403 Forbidden
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 10:10:26 GMT
+Content-Type: application/json
+Content-Length: 60
+Connection: keep-alive
+
+{"error":"failed to perform authorization over the entity"}
+```
+```bash
+curl -s -S -i -X GET -H "Authorization: $usertoken" http://localhost/things/$th2
+HTTP/1.1 403 Forbidden
+Server: nginx/1.20.0
+Date: Wed, 13 Oct 2021 10:10:28 GMT
+Content-Type: application/json
+Content-Length: 60
+Connection: keep-alive
+
+{"error":"failed to perform authorization over the entity"}
+```
