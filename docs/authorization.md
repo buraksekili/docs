@@ -35,8 +35,12 @@ Mainflux comes with predefined policies.
 ### Users service related policies
 
 - By default, Mainflux allows anybody to create a user. If you disable this default policy, only *admin* is able to create a user.
-This default policy can be disabled through an environment variable in deployment time.
-
+This default policy can be disabled through an environment variable called `MF_ONLY_ADMIN_CREATES_USER` in deployment time. 
+Mainflux creates a special policy to enable this feature as follows: `user#create@*`. This policy dictates that subject `*` has `create` relation on the object `users`. Here, Mainflux uses a special `*` subject to represent all users. If this policy is defined, everybody can create new users.
+- All users are a `member of the users`. To be more precise, once the new user is created, the policy service creates the following policy: 
+`users#member@<user_id>` indicating that the subject `<user_id`> has `member` relation on the object `users`.
+- The admin has a special policy indicating that the user is admin. This policy is the following: 
+`<admin_id>` has `member` relation on the object `authorities`. 
 
 ### Things service related policies
 
@@ -46,6 +50,50 @@ This default policy can be disabled through an environment variable in deploymen
 - In order to update and share the thing, you need a `write` policy on that thing.
 - In order to remove a thing, you need a `delete` policy on that thing.
 
+### Group entity related policies
+
+- Once the user creates a new group, the user will have a `member` policy on the group.
+- If you assign a new User member to your Users Group, the new user will have a `member` policy on this particular Users Group.
+- If you assign a new Thing member to your Things Group, whatever has `access` policy on the Things Group will have `read`, `write` and `delete` policy on the Things defined in the Thing Group.
+- Mainflux allows users to assign access rights of the Things group with the Users group. Thus, each member of the User group can access Things defined in the Thing group. In order to do so, the Policy service adds an `access` policy of the Thing Group for the users who have a `member` policy on the Users group. Therefore, the Users group members have `read`, `write` and `delete` policy on the Things defined in the Thing Group.
+
+### Summary of the Defined Policies
+- **`member`**: Identifies registered user's role such as `admin`. Also, it indicates memberships on the Group entity.
+- **`read`, `write` and `delete`**: Controls access control for the Things.
+- **`access`**: Controls whether you have an `access` to other group or not.
+- **`create`**: Mainflux uses special `create` policy to allow everybody to create new users. If you want to enable this feature through the HTTP, you need to make following request:
+```bash
+curl -isSX POST http://localhost/policy -d '{"subjects":["*"],"policies": ["create"], "object": "user"}' -H "Authorization: <admin_auth_token>" -H 'Content-Type: application/json'
+```
+
+### Adding custom policies
+
+You can add custom policies as well through an HTTP endpoint. *Only* admin can use this endpoint. Therefore, you need an authentication token for the admin.
+
+**Caveat:** Only policies defined under [Summary of the Defined Policies](#summary-of-the-defined-policies) are allowed. Other policies are not allowed. For example, you can add `member` policy but not `custom-member` policy because `custom-member` policy is not defined on the system.
+
+```bash
+curl -isSX POST http://localhost/policy -d '{"subjects":["<user_id>"],"policies": ["member"], "object": "users"}' -H "Authorization: <admin_auth_token>" -H 'Content-Type: application/json'
+```
+
+## Example usage of adding a policy
+
+Suppose we are using the Mainflux version that doesn't have a policies feature yet. Once you migrate a new version of the Mainflux including the Policy feature, your users will face a lack of authorization. For example, there is a user created before the Policy feature. This user is authenticated by `<user_auth_token`>. Although the following operation is valid, the user will have an authorization error.
+```bash
+mainflux-cli things create '{"name":"user-thing"}' <user_auth_token>
+
+error: failed to create entity: 403 Forbidden
+```
+The reason is that the user has not enough policy to create a new Thing after migration. In order to create a new thing, the user has to have a `member` relation on the `users` key. So that, Mainflux understands that the requester user is authorized to create new Things.
+
+The easiest solution for this problem is adding policies for the users through the HTTP endpoint. As described above, the user needs a `member` relation on the `users`. 
+```bash
+curl -isSX POST http://localhost/policy -d '{"subjects":["<user_id>"],"policies": ["member"], "object": "users"}' -H "Authorization: <user_auth_token> " -H 'Content-Type: application/json' 
+```
+
+So what this request does is add new policies for the subject defined in the `subjects` field of the request body. Henceforth, the subject (here `<user_id>`) will have a `member` relation on the object `users`. This policy allows the user to create new Things.
+
+Please, keep in mind that this endpoint requires you to use `<user_auth_token>`, not any token. 
 
 ## Example usage of sharing a Thing
 
