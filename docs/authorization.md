@@ -35,7 +35,7 @@ Mainflux comes with predefined policies.
 ### Users service related policies
 
 - By default, Mainflux allows anybody to create a user. If you disable this default policy, only *admin* is able to create a user.
-This default policy can be disabled through an environment variable called `MF_ONLY_ADMIN_CREATES_USER` in deployment time. 
+This default policy can be disabled through an environment variable called `MF_USERS_ALLOW_SELF_REGISTER` in deployment time. `MF_USERS_ALLOW_SELF_REGISTER` is a boolean. Therefore, it expects `"true"` or `"false"`. If you assign `"false"` to this environment variable, only *admin* can create a user.
 Mainflux creates a special policy to enable this feature as follows: `user#create@*`. This policy dictates that subject `*` has `create` relation on the object `users`. Here, Mainflux uses a special `*` subject to represent all users. If this policy is defined, everybody can create new users.
 - All users are a `member of the users`. To be more precise, once the new user is created, the policy service creates the following policy: 
 `users#member@<user_id>` indicating that the subject `<user_id`> has `member` relation on the object `users`.
