@@ -743,3 +743,45 @@ Content-Type: application/json
 Connection: keep-alive
 Access-Control-Expose-Headers: Location
 ```
+
+## Policies
+
+### Add policies
+The admin can add custom policies. Only policies defined on [Predefined Policies section](/authorization/#summary-of-the-defined-policies) are allowed.
+
+> Must-have: admin_token, object, subjects_ids and policies
+
+```bash
+curl -isSX POST http://localhost:8189/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
+```
+
+*admin_token* must belong to the admin.
+
+Response:
+```bash
+HTTP/1.1 201 Created
+Content-Type: application/json
+Date: Wed, 03 Nov 2021 13:00:14 GMT
+Content-Length: 3
+
+{}
+```
+
+### Delete policies
+The admin can delete policies. Only policies defined on [Predefined Policies section](/authorization/#summary-of-the-defined-policies) are allowed.
+
+> Must-have: admin_token, object, subjects_ids and policies
+
+```bash
+curl -isSX PUT http://localhost:8189/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
+```
+
+*admin_token* must belong to the admin.
+
+Response:
+```bash
+HTTP/1.1 204 No Content
+Content-Type: application/json
+Date: Wed, 03 Nov 2021 13:00:05 GMT
+
+```

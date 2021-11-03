@@ -2,13 +2,13 @@
 
 ## Policies
 
-Mainflux uses policies to control permissions on entities: **users**, **things**, and **groups**. Under the hood, Mainflux uses [ORY Keto](https://www.ory.sh/keto/) that is an open-source implementation of ["Zanzibar: Google's Consistent, Global Authorization System"](https://www.usenix.org/conference/atc19/presentation/pang)
+Mainflux uses policies to control permissions on entities: **users**, **things**, and **groups**. Under the hood, Mainflux uses [ORY Keto](https://www.ory.sh/keto/) that is an open-source implementation of ["Zanzibar: Google's Consistent, Global Authorization System"](https://www.usenix.org/conference/atc19/presentation/pang).
 
 Policies define permissions for the entities. For example, *which user* has *access* to *a specific thing*. Such policies have three main components: **subject**, **object**, and **relation**.
 
 To put it briefly: 
 
-**Subject**: As the name suggests, it is the subject that will have the policy. Mainflux uses entity UUID on behalf of the real entities.
+**Subject**: As the name suggests, it is the subject that will have the policy such as *users*. Mainflux uses entity UUID on behalf of the real entities.
 
 **Object**: Objects are Mainflux entities (e.g. *thing* or *group*) represented by their UUID.
 
@@ -66,14 +66,33 @@ Mainflux creates a special policy to enable this feature as follows: `user#creat
 curl -isSX POST http://localhost/policy -d '{"subjects":["*"],"policies": ["create"], "object": "user"}' -H "Authorization: <admin_auth_token>" -H 'Content-Type: application/json'
 ```
 
-### Adding custom policies
+## Add Policies
 
-You can add custom policies as well through an HTTP endpoint. *Only* admin can use this endpoint. Therefore, you need an authentication token for the admin.
+You can add policies as well through an HTTP endpoint. *Only* admin can use this endpoint. Therefore, you need an authentication token for the admin.
 
 **Caveat:** Only policies defined under [Summary of the Defined Policies](#summary-of-the-defined-policies) are allowed. Other policies are not allowed. For example, you can add `member` policy but not `custom-member` policy because `custom-member` policy is not defined on the system.
 
 ```bash
-curl -isSX POST http://localhost/policy -d '{"subjects":["<user_id>"],"policies": ["member"], "object": "users"}' -H "Authorization: <admin_auth_token>" -H 'Content-Type: application/json'
+curl -isSX POST http://localhost:8189/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
+```
+
+### Delete policies
+The admin can delete policies. Only policies defined on [Predefined Policies section](/authorization/#summary-of-the-defined-policies) are allowed.
+
+> Must-have: admin_token, object, subjects_ids and policies
+
+```bash
+curl -isSX PUT http://localhost:8189/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
+```
+
+*admin_token* must belong to the admin.
+
+Response:
+```bash
+HTTP/1.1 204 No Content
+Content-Type: application/json
+Date: Wed, 03 Nov 2021 13:00:05 GMT
+
 ```
 
 ## Example usage of adding a policy
@@ -84,16 +103,18 @@ mainflux-cli things create '{"name":"user-thing"}' <user_auth_token>
 
 error: failed to create entity: 403 Forbidden
 ```
+
 The reason is that the user has not enough policy to create a new Thing after migration. In order to create a new thing, the user has to have a `member` relation on the `users` key. So that, Mainflux understands that the requester user is authorized to create new Things.
 
 The easiest solution for this problem is adding policies for the users through the HTTP endpoint. As described above, the user needs a `member` relation on the `users`. 
+
 ```bash
-curl -isSX POST http://localhost/policy -d '{"subjects":["<user_id>"],"policies": ["member"], "object": "users"}' -H "Authorization: <user_auth_token> " -H 'Content-Type: application/json' 
+curl -isSX POST http://localhost/policy -d '{"subjects":["<user_id>"],"policies": ["member"], "object": "users"}' -H "Authorization: <admin_auth_token> " -H 'Content-Type: application/json' 
 ```
 
 So what this request does is add new policies for the subject defined in the `subjects` field of the request body. Henceforth, the subject (here `<user_id>`) will have a `member` relation on the object `users`. This policy allows the user to create new Things.
 
-Please, keep in mind that this endpoint requires you to use `<user_auth_token>`, not any token. 
+Please, keep in mind that this endpoint requires you to use `<admin_auth_token>`, not any token. So, the token must belong to the admin.
 
 ## Example usage of sharing a Thing
 
