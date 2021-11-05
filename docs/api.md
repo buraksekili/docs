@@ -744,6 +744,16 @@ Connection: keep-alive
 Access-Control-Expose-Headers: Location
 ```
 
+### Share User Group with Things Group
+Adds access rights on thing groups to the user group.
+
+> Must-have: `user_token`, `user_group_id` and `<thing_group_id>`.
+
+```bash
+curl -s -S -i -X POST http://localhost/groups/<user_group_id>/share -d '{"thing_group_id": "<thing_group_id>"}' -H 'Content-Type: application/json' -H "Authorization: <user_token>"
+```
+
+
 ## Policies
 
 ### Add policies

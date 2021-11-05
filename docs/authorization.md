@@ -53,14 +53,13 @@ Mainflux creates a special policy to enable this feature as follows: `user#creat
 ### Group entity related policies
 
 - Once the user creates a new group, the user will have a `member` policy on the group.
-- If you assign a new User member to your Users Group, the new user will have a `member` policy on this particular Users Group.
-- If you assign a new Thing member to your Things Group, whatever has `access` policy on the Things Group will have `read`, `write` and `delete` policy on the Things defined in the Thing Group.
-- Mainflux allows users to assign access rights of the Things group with the Users group. Thus, each member of the User group can access Things defined in the Thing group. In order to do so, the Policy service adds an `access` policy of the Thing Group for the users who have a `member` policy on the Users group. Therefore, the Users group members have `read`, `write` and `delete` policy on the Things defined in the Thing Group.
+- If you assign a new User member to your group, the new user will have a `member` policy on this particular group.
+- If you assign a new Thing member to your group, whatever has `member` policy on that group will have `read`, `write` and `delete` policies on the Things defined in the Group.
+- Mainflux allows users to assign access rights of the Things group with the Users group. Thus, each member of the User group can access Things defined in the Thing group. In order to do so, the Policy service adds members of the User group as a `member` of the Thing Group. Therefore, the Users group members have `read`, `write` and `delete` policy on the Things defined in the Thing Group.
 
 ### Summary of the Defined Policies
 - **`member`**: Identifies registered user's role such as `admin`. Also, it indicates memberships on the Group entity.
 - **`read`, `write` and `delete`**: Controls access control for the Things.
-- **`access`**: Controls whether you have an `access` to other group or not.
 - **`create`**: Mainflux uses special `create` policy to allow everybody to create new users. If you want to enable this feature through the HTTP, you need to make following request:
 ```bash
 curl -isSX POST http://localhost/policy -d '{"subjects":["*"],"policies": ["create"], "object": "user"}' -H "Authorization: <admin_auth_token>" -H 'Content-Type: application/json'
@@ -76,7 +75,7 @@ You can add policies as well through an HTTP endpoint. *Only* admin can use this
 curl -isSX POST http://localhost:8189/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
 ```
 
-### Delete policies
+## Delete policies
 The admin can delete policies. Only policies defined on [Predefined Policies section](/authorization/#summary-of-the-defined-policies) are allowed.
 
 > Must-have: admin_token, object, subjects_ids and policies
@@ -172,6 +171,126 @@ mainflux-cli things get a1109d52-6281-410e-93ae-38ba7daa9381 <user2_auth_token>
 ```
 
 As we expected, the operation is successfully done. The policy server checked that `Is user2 allowed to view "user1-thing"?` Since `user2` has a `read` policy on `"user1-thing"`, the Policy server allows this request. 
+
+## Example usage of Groups
+
+In this scenario, there will be two users called `user1@example.com` and `user2@example.com`. `user1@example.com` will create one Thing called `thing-test`. Then, the Group entity will be utilized to store all of the created entities (`user1@example.com`, `user2@example.com`, and `thing-test`). At the end of this scenario, we will verify that although `user2@example.com` has no ownership of `thing-test`, `user2@example.com` can access the `thing-test` because they are in the same group.
+
+Let's start with creating users:
+- Create `user1@example.com`
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" http://localhost/users -d '{"email":"user1@example.com", "password":"12345678"}'
+```
+
+- Create `user2@example.com`
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" http://localhost/users -d '{"email":"user2@example.com", "password":"12345678"}'
+```
+
+Now, let's create a Thing called `thing-test` owned by `user1@example.com`. Prior to creating it, first, obtain a token for `user1@example.com` as follows:
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" http://localhost/tokens -d '{"email":"user1@example.com", "password":"12345678"}'
+```
+
+It is convenient to store the generated token because the token will be required in further steps repeatedly.
+```bash
+export user1_token=<user1_token>
+```
+
+And create a Thing called `thing-test`
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" -H "Authorization: $user1_token" http://localhost/things/bulk -d '[{"name": "thing-test"}]'
+```
+
+> Note: We will need the ID of newly created Thing in further steps. Again, it is better to store it.
+
+If `user2@example.com` tries to view `thing-test`, the operation will be denied by policy service because `user2@example.com` has no policies related to reading `thing-test`. 
+
+```bash
+curl -s -S -i -X GET -H "Authorization: $user2_token" http://localhost/things/<thing_id>
+HTTP/1.1 403 Forbidden
+Server: nginx/1.20.0
+Date: Fri, 05 Nov 2021 06:03:42 GMT
+Content-Type: application/json
+Content-Length: 60
+Connection: keep-alive
+
+{"error":"failed to perform authorization over the entity"}
+```
+
+It is time to create a new Group and put all entities into that Group. Mainflux provides HTTP API for Groups like other entities. We will utilize this HTTP API for Group operations. For more details about Groups, please see [Groups documentation](/groups).
+
+```
+curl -s -S -i -X POST -H "Content-Type: application/json" -H "Authorization: $user1_token" http://localhost/groups -d '{"name": "my_group"}'
+HTTP/1.1 201 Created
+Server: nginx/1.20.0
+Date: Fri, 05 Nov 2021 06:10:32 GMT
+Content-Type: application/json
+Content-Length: 0
+Connection: keep-alive
+Location: /groups/01FKQBGQEP71DG9C99J37YBJD7
+Access-Control-Expose-Headers: Location
+```
+
+The `POST /groups` API creates a new group. In our case, it creates a group called `my_group`. Since `user1@example.com`'s token is used, the policy service creates a policy to indicate that `user1@example.com` is *member* of *my_group*. 
+
+In the *Location response header*, you can see the ID of the `my_group`. For the response above, the location is `Location: /groups/01FKQBGQEP71DG9C99J37YBJD7`. Therefore, the group ID of `my_group` is `01FKQBGQEP71DG9C99J37YBJD7`. We will need this ID while assigning new members to `my_group`.
+
+The group `my_group` includes just a member that is `user1@example.com`, yet. In order to add new members, we will use [`POST /groups/<group_id>/members`](/groups/#assign-a-member-to-a-group). While assigning entities, you will need the ID of the entities respectively. Let's start with assigning `thing-test` to `my_group`.
+
+```bash
+ curl -s -S -i -X POST -H "Content-Type: application/json" -H "Authorization: $user1_token" http://localhost/groups/<group_id>/members -d '{"members":["<thing_id>"], "type":"things"}'
+```
+
+The crucial point here is that since we are assigning a Thing to the Group, the `"type"` field of the request body **must be** `things`.
+
+
+Now, assign `user2@example.com` to `my_group`.
+
+```bash
+curl -s -S -i -X POST -H "Content-Type: application/json" -H "Authorization: $user1_token" http://localhost/groups/$g/members -d '{"members": "c0fb3fdb-ecfa-407a-bd11-93884d70baf7"], "type":"users"}'
+```
+
+Again, please be careful about the `"type"` field of the request body. Since we are assigning the user, the type is `users`.
+
+> Under the hood, the Policy service creates `member` policies for each entity respectively. Also, each *user* member will have access to Things defined in the Group. That's why the type field is crucial.
+
+Okay, let's check whether `user2@example.com` is capable to view the `my-thing`. Previously, the Policy service denied that request from `user2@example.com`. Try again:
+
+```bash
+curl -s -S -i -X GET -H "Authorization: $user2_token" http://localhost/things/<thing_id>
+HTTP/1.1 200 OK
+Server: nginx/1.20.0
+Date: Fri, 05 Nov 2021 06:36:03 GMT
+Content-Type: application/json
+Content-Length: 111
+Connection: keep-alive
+Access-Control-Expose-Headers: Location
+
+{"id":"7d551538-834d-4398-bd4d-38940dd4bfa9","name":"thing-test","key":"4305f78d-399b-4cc4-ad42-3fd5bac09715"}
+```
+
+Successful as we expected. Since `user2@example.com` and `my-thing` reside in the same group, `user2@example.com` can access the `my-thing` through Group policies.
+
+If you unassign user2@example.com, the user cannot access `my-thing`. In order to test it, you can unassign the `user2@example.com` as follows:
+
+```bash
+curl -s -S -i -X DELETE -H "Content-Type: application/json" -H "Authorization: $user1_token" http://localhost/groups/$g/members -d '{"members": "c0fb3fdb-ecfa-407a-bd11-93884d70baf7"], "type":"users"}'
+```
+
+Since `user2@example.com` is not a member of the my_group anymore, the Policy service denies incoming request related to viewing the `my-thing` from `user2@example.com`. 
+
+```bash
+curl -s -S -i -X GET -H "Authorization: $user2_token" http://localhost/things/$th
+HTTP/1.1 403 Forbidden
+Server: nginx/1.20.0
+Date: Fri, 05 Nov 2021 06:39:47 GMT
+Content-Type: application/json
+Content-Length: 60
+Connection: keep-alive
+
+{"error":"failed to perform authorization over the entity"}
+```
 
 ## Example usage of sharing entities via Group
 
