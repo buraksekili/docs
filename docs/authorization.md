@@ -75,7 +75,7 @@ You can add policies as well through an HTTP endpoint. *Only* admin can use this
 curl -isSX POST http://localhost/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
 ```
 
-## Delete policies
+## Delete Policies
 The admin can delete policies. Only policies defined on [Predefined Policies section](/authorization/#summary-of-the-defined-policies) are allowed.
 
 > Must-have: admin_token, object, subjects_ids and policies
@@ -93,6 +93,14 @@ Content-Type: application/json
 Date: Wed, 03 Nov 2021 13:00:05 GMT
 
 ```
+
+If you delete policies, the policy will be removed from the policy storage. Further authorization checks related to that policy will fail. 
+
+For example, let's assume `user1` has `read` policy on the thing `thing-123`. If you delete this policy as:
+```bash
+curl -isSX PUT http://localhost/policies -d '{"subjects": ["<user1_id>"], "object": "thing-123", "policies": ["read"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
+```
+`user1` will not be able to view the `thing-123` anymore because the policy which allows `user1` to view `thing-123` is deleted by the admin.
 
 ## Example usage of adding a policy
 

@@ -753,6 +753,7 @@ Adds access rights on thing groups to the user group.
 curl -s -S -i -X POST http://localhost/groups/<user_group_id>/share -d '{"thing_group_id": "<thing_group_id>"}' -H 'Content-Type: application/json' -H "Authorization: <user_token>"
 ```
 
+Each user from the the group identified by `user_group_id` will have `read`, `write`, and `delete` policies on the things grouped by `thing_group_id`. Therefore, they will be able to do operations defined under [Things Policies section](/authorization/#things-service-related-policies).
 
 ## Policies
 
