@@ -252,7 +252,6 @@ The group `my_group` includes just a member that is `user1@example.com`, yet. In
 
 The crucial point here is that since we are assigning a Thing to the Group, the `"type"` field of the request body **must be** `things`.
 
-
 Now, assign `user2@example.com` to `my_group`.
 
 ```bash
@@ -313,7 +312,6 @@ In this example, we will demonstrate how you can share access of the Users group
 First of all, obtain a token for the default admin. You can use any user but for the simplicity of the document, the default admin will be used. 
 
 > By default, Mainflux uses credentials described in [.env](https://github.com/mainflux/mainflux/blob/master/docker/.env#L46) for the default admin.
-
 
 ```bash
 $ curl -s -S -i -X POST -H "Content-Type: application/json" http://localhost/tokens -d '{"email":"admin@example.com",
@@ -483,7 +481,7 @@ Connection: keep-alive
 Access-Control-Expose-Headers: Location 
 ```
 
-Now, all the members of the `user_group` have access to things grouped by `thing_group`. Therefore, `user@example.com` has `read`, `write` and `delete` policies on the things within the thing_group. 
+Now, all the members of the `user_group` have access to things within the `thing_group`. Therefore, `user@example.com` has `read`, `write` and `delete` policies on the things within the thing_group. 
 
 Try to access things as `user@example.com`.
 
