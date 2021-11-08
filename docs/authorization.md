@@ -62,7 +62,7 @@ Mainflux creates a special policy to enable this feature as follows: `user#creat
 - **`read`, `write` and `delete`**: Controls access control for the Things.
 - **`create`**: Mainflux uses special `create` policy to allow everybody to create new users. If you want to enable this feature through the HTTP, you need to make following request:
 ```bash
-curl -isSX POST http://localhost/policy -d '{"subjects":["*"],"policies": ["create"], "object": "user"}' -H "Authorization: <admin_auth_token>" -H 'Content-Type: application/json'
+curl -isSX POST http://localhost/policies -d '{"subjects":["*"],"policies": ["create"], "object": "user"}' -H "Authorization: <admin_auth_token>" -H 'Content-Type: application/json'
 ```
 
 ## Add Policies
@@ -72,7 +72,7 @@ You can add policies as well through an HTTP endpoint. *Only* admin can use this
 **Caveat:** Only policies defined under [Summary of the Defined Policies](#summary-of-the-defined-policies) are allowed. Other policies are not allowed. For example, you can add `member` policy but not `custom-member` policy because `custom-member` policy is not defined on the system.
 
 ```bash
-curl -isSX POST http://localhost:8189/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
+curl -isSX POST http://localhost/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
 ```
 
 ## Delete policies
@@ -81,7 +81,7 @@ The admin can delete policies. Only policies defined on [Predefined Policies sec
 > Must-have: admin_token, object, subjects_ids and policies
 
 ```bash
-curl -isSX PUT http://localhost:8189/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
+curl -isSX PUT http://localhost/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
 ```
 
 *admin_token* must belong to the admin.
@@ -108,7 +108,7 @@ The reason is that the user has not enough policy to create a new Thing after mi
 The easiest solution for this problem is adding policies for the users through the HTTP endpoint. As described above, the user needs a `member` relation on the `users`. 
 
 ```bash
-curl -isSX POST http://localhost/policy -d '{"subjects":["<user_id>"],"policies": ["member"], "object": "users"}' -H "Authorization: <admin_auth_token> " -H 'Content-Type: application/json' 
+curl -isSX POST http://localhost/policies -d '{"subjects":["<user_id>"],"policies": ["member"], "object": "users"}' -H "Authorization: <admin_auth_token> " -H 'Content-Type: application/json' 
 ```
 
 So what this request does is add new policies for the subject defined in the `subjects` field of the request body. Henceforth, the subject (here `<user_id>`) will have a `member` relation on the object `users`. This policy allows the user to create new Things.

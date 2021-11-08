@@ -762,7 +762,7 @@ The admin can add custom policies. Only policies defined on [Predefined Policies
 > Must-have: admin_token, object, subjects_ids and policies
 
 ```bash
-curl -isSX POST http://localhost:8189/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
+curl -isSX POST http://localhost/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
 ```
 
 *admin_token* must belong to the admin.
@@ -783,7 +783,7 @@ The admin can delete policies. Only policies defined on [Predefined Policies sec
 > Must-have: admin_token, object, subjects_ids and policies
 
 ```bash
-curl -isSX PUT http://localhost:8189/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
+curl -isSX PUT http://localhost/policies -d '{"subjects": ["<subject_id1>",..."<subject_idN>"], "object": "<object>", "policies": ["<action_1>, ..."<action_N>"]}' -H "Authorization: <admin_token>" -H 'Content-Type: application/json'
 ```
 
 *admin_token* must belong to the admin.
